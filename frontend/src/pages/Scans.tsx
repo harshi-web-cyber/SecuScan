@@ -66,6 +66,7 @@ export default function Scans() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const PAGE_LIMIT = 10;
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
   // Modal state for confirm dialogs
   const [modalState, setModalState] = useState<{
@@ -273,6 +274,21 @@ export default function Scans() {
     if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
     return `${Math.round(seconds / 3600)}h`;
   }
+
+  // Toggle overflow menu
+  function toggleMenu(taskId: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setMenuOpenId(menuOpenId === taskId ? null : taskId);
+  }
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside() {
+      setMenuOpenId(null);
+    }
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   return (
     <div className="min-h-screen bg-charcoal-dark text-silver p-6 md:p-12 space-y-12">
@@ -605,50 +621,121 @@ export default function Scans() {
                                 </div>
                               </div>
 
-                              <div className="flex flex-wrap items-center gap-3">
-                                {(task.status === "completed" ||
-                                  task.status === "failed" ||
-                                  task.status === "cancelled") && (
+                              {/* ACTION BUTTONS - Updated with compact menu */}
+                              <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                                {/* Desktop: All buttons visible */}
+                                <div className="hidden sm:flex flex-wrap items-center gap-3">
+                                  {(task.status === "completed" ||
+                                    task.status === "failed" ||
+                                    task.status === "cancelled") && (
+                                    <button
+                                      className="bg-rag-red/20 text-rag-red border-2 border-rag-red/20 hover:bg-rag-red hover:text-black hover:border-black px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 italic"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleTaskDelete(task.task_id);
+                                      }}
+                                    >
+                                      Delete_Record
+                                      <span className="material-symbols-outlined text-sm">
+                                        delete
+                                      </span>
+                                    </button>
+                                  )}
+                                  {(task.status === "completed" ||
+                                    task.status === "failed") && (
+                                    <button
+                                      className="bg-rag-blue text-black px-8 py-4 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center gap-3 group/btn italic"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRescan(task);
+                                      }}
+                                    >
+                                      Rescan_Signal
+                                      <span className="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">
+                                        replay
+                                      </span>
+                                    </button>
+                                  )}
                                   <button
-                                    className="bg-rag-red/20 text-rag-red border-2 border-rag-red/20 hover:bg-rag-red hover:text-black hover:border-black px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-3 italic"
+                                    className="bg-silver-bright text-black px-8 py-4 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center gap-3 group/btn italic"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleTaskDelete(task.task_id);
+                                      navigate(routePath.task(task.task_id));
                                     }}
                                   >
-                                    Delete_Record
-                                    <span className="material-symbols-outlined text-sm">
-                                      delete
-                                    </span>
-                                  </button>
-                                )}
-                                {(task.status === "completed" ||
-                                  task.status === "failed") && (
-                                  <button
-                                    className="bg-rag-blue text-black px-8 py-4 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center gap-3 group/btn italic"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRescan(task);
-                                    }}
-                                  >
-                                    Rescan_Signal
+                                    Open_Deep_Brief
                                     <span className="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">
-                                      replay
+                                      arrow_right_alt
                                     </span>
                                   </button>
-                                )}
-                                <button
-                                  className="bg-silver-bright text-black px-8 py-4 text-[10px] font-black uppercase tracking-widest shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-1 hover:translate-y-1 transition-all flex items-center gap-3 group/btn italic"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigate(routePath.task(task.task_id));
-                                  }}
-                                >
-                                  Open_Deep_Brief
-                                  <span className="material-symbols-outlined text-sm group-hover/btn:translate-x-1 transition-transform">
-                                    arrow_right_alt
-                                  </span>
-                                </button>
+                                </div>
+
+                                {/* Mobile: Overflow Menu (visible on small screens) */}
+                                <div className="sm:hidden relative">
+                                  <button
+                                    className="bg-charcoal-dark border-2 border-silver/20 hover:border-rag-blue px-4 py-3 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2"
+                                    onClick={(e) => toggleMenu(task.task_id, e)}
+                                    aria-label="Actions menu"
+                                    aria-expanded={menuOpenId === task.task_id}
+                                  >
+                                    <span className="material-symbols-outlined text-lg">
+                                      more_horiz
+                                    </span>
+                                    Actions
+                                  </button>
+
+                                  {/* Dropdown Menu */}
+                                  {menuOpenId === task.task_id && (
+                                    <div 
+                                      className="absolute right-0 mt-2 w-56 bg-charcoal border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] z-50 py-2"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {(task.status === "completed" ||
+                                        task.status === "failed" ||
+                                        task.status === "cancelled") && (
+                                        <button
+                                          className="w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-rag-red/20 text-rag-red flex items-center gap-3 transition-colors"
+                                          onClick={() => {
+                                            setMenuOpenId(null);
+                                            handleTaskDelete(task.task_id);
+                                          }}
+                                        >
+                                          <span className="material-symbols-outlined text-sm">
+                                            delete
+                                          </span>
+                                          Delete_Record
+                                        </button>
+                                      )}
+                                      {(task.status === "completed" ||
+                                        task.status === "failed") && (
+                                        <button
+                                          className="w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-rag-blue/20 text-rag-blue flex items-center gap-3 transition-colors"
+                                          onClick={() => {
+                                            setMenuOpenId(null);
+                                            handleRescan(task);
+                                          }}
+                                        >
+                                          <span className="material-symbols-outlined text-sm">
+                                            replay
+                                          </span>
+                                          Rescan_Signal
+                                        </button>
+                                      )}
+                                      <button
+                                        className="w-full px-6 py-3 text-left text-[10px] font-black uppercase tracking-widest hover:bg-silver-bright/20 text-silver-bright flex items-center gap-3 transition-colors"
+                                        onClick={() => {
+                                          setMenuOpenId(null);
+                                          navigate(routePath.task(task.task_id));
+                                        }}
+                                      >
+                                        <span className="material-symbols-outlined text-sm">
+                                          arrow_right_alt
+                                        </span>
+                                        Open_Deep_Brief
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </motion.div>
